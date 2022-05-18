@@ -1,19 +1,61 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
     <link href="./styles.css" rel="stylesheet">
     <title>Hello World!</title>
-  </head>
-  <body>
-    <h1>Hello World!</h1>
-    We are using Node.js <span id="node-version"></span>,
-    Chromium <span id="chrome-version"></span>,
-    and Electron <span id="electron-version"></span>.
+</head>
+<body>
+<div id="container">
+    <table>
+        <tbody>
+        <tr>
+            <td>Rank</td>
+            <td><input type="text" id="Rank"></td>
+        </tr>
+        <tr>
+            <td>Item 1:</td>
+            <td><input type="text" id="Item1"></td>
+        </tr>
+        <tr>
+            <td>Item 2:</td>
+            <td><input type="text" id="Item2"></td>
+        </tr>
+        <tr>
+            <td>Item 3:</td>
+            <td><input type="text" id="Item3"></td>
+        </tr>
+        <tr>
+            <td>Name 2:</td>
+            <td><input type="text" id="Name2"></td>
+        </tr>
+        <tr>
+            <td>Name 3:</td>
+            <td><input type="text" id="Name3"></td>
+        </tr>
+        <tr>
+            <td>Name 4:</td>
+            <td><input type="text" id="Name4"></td>
+        </tr>
+        <tr>
+            <td>Name 5:</td>
+            <td><input type="text" id="Name5"></td>
+        </tr>
+        <tr>
+            <td>Name 6:</td>
+            <td><input type="text" id="Name6"></td>
+        </tr>
+        </tbody>
+    </table>
+    <button id="button-search">Search</button>
 
-    <!-- You can also require other files to run in this process -->
-    <script src="./renderer.js"></script>
-  </body>
+</div>
+
+
+<!-- You can also require other files to run in this process -->
+<script src="./renderer.js"></script>
+</body>
 </html>

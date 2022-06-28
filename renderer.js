@@ -151,20 +151,21 @@ const AUDIO_MAP = {
     "e-tick": $("#audio-e-tick").get()[0]
 }
 
-function frameMatches(frame, items, names, rank = 'C') {
-    let data = generateChocoboRaceData(new RNG(BigInt.asUintN(32, BigInt(frame))), rank);
-    for (let i = 0; i < items.length; i++) {
-        if (data.items[i] !== BigInt(items[i])) {
-            return false;
-        }
-    }
-    for (let i = 0; i < names.length; i++) {
-        if (names[i] !== -1 && data.names[i] !== BigInt(names[i])) {
-            return false;
-        }
-    }
-    return true;
-}
+
+// function frameMatches(frame, items, names, rank = 'C') {
+//     let data = generateChocoboRaceData(new RNG(BigInt.asUintN(32, BigInt(frame))), rank);
+//     for (let i = 0; i < items.length; i++) {
+//         if (data.items[i] !== BigInt(items[i])) {
+//             return false;
+//         }
+//     }
+//     for (let i = 0; i < names.length; i++) {
+//         if (names[i] !== -1 && data.names[i] !== BigInt(names[i])) {
+//             return false;
+//         }
+//     }
+//     return true;
+// }
 
 function framesBetweenTimes(time1, time2) {
     return Math.round(((time1 - time2) * FPS) / 1000);
@@ -174,32 +175,41 @@ function framesToMilliseconds(frame) {
     return frame * (1000 / FPS);
 }
 
-function offsetToNearestMatchingFrame(frame, items, names, rank) {
+// function offsetToNearestMatchingFrame(frame, items, names, rank) {
+//
+//     let search_window_size = FRAME_CALCULATION_SEARCH_WINDOW_SIZE;
+//
+//     if (frameMatches(frame, items, names, rank)) {
+//         return 0;
+//     }
+//
+//     for (let i = 1; i < search_window_size; i += 1) {
+//         if (frame - i >= 0 && frameMatches(frame - i, items, names, rank)) {
+//             return -i;
+//         }
+//         if (frameMatches(frame + i, items, names, rank)) {
+//             return i;
+//         }
+//     }
+//
+//     return null;
+// }
 
-    let search_window_size = FRAME_CALCULATION_SEARCH_WINDOW_SIZE;
-
-    if (frameMatches(frame, items, names, rank)) {
-        return 0;
-    }
-
-    for (let i = 1; i < search_window_size; i += 1) {
-        if (frame - i >= 0 && frameMatches(frame - i, items, names, rank)) {
-            return -i;
-        }
-        if (frameMatches(frame + i, items, names, rank)) {
-            return i;
-        }
-    }
-
-    return null;
-}
-
-function fetchRaceData(frame, rank = 'C') {
+function fetchRaceDataRows(frame, rank = 'C') {
     let table = `${rank}_Prizes`
     let query = `select * from ${table}
                     where Frame = ${frame}
                     limit 1`
-    window.electronAPI.query(query)
+    return window.electronAPI.query(query)
+}
+
+function dbToRaceData(dbRow) {
+    return new ChocoboData(
+        [dbRow.Item1, dbRow.Item2, dbRow.Item3],
+        [dbRow.Card1_1, dbRow.Card1_2, dbRow.Card1_3, dbRow.Card1_4, dbRow.Card1_5,
+            dbRow.Card2_1, dbRow.Card2_2, dbRow.Card2_3, dbRow.Card2_4, dbRow.Card2_5,
+            dbRow.Card3_1, dbRow.Card3_2, dbRow.Card3_3, dbRow.Card3_4, dbRow.Card3_5],
+        [dbRow.Name2,dbRow.Name3,dbRow.Name4,dbRow.Name5,dbRow.Name6]);
 }
 
 // function generateChocoboRaceData(rng = null, rank = 'C', _B747C = 0xffffffff) {
@@ -458,6 +468,8 @@ let MIN_TIME_BEFORE_WINDOW = parseInt($("#input-next-window-min-time").val())
 let WINDOW_SEARCH_MAX_FRAMES = parseInt($("#input-window-search-max-frames").val())
 let MIN_WINDOW_SIZE = parseInt($("#input-min-window-size").val())
 
+let TIMER_ELEMENT = $("#timer").get()[0];
+
 let power_on_time;
 let calibration_race_start_time;
 let calibration_race_start_frame;
@@ -482,7 +494,6 @@ function runTimer(start) {
     let d = new Date();
     let audio = AUDIO_MAP[$("#input-beep-noise").val()];
     let ms_between_beeps = TIME_BETWEEN_BEEPS;
-    let timer_element = $("#timer").get()[0];
     let beep_time = Math.min((BEEPS - 1) * ms_between_beeps, start - d.getTime());
     if (ivar !== undefined && ivar !== null) {
         window.clearInterval(ivar);
@@ -490,13 +501,14 @@ function runTimer(start) {
     ivar = window.setInterval(function () {
         d = new Date();
         let delta = start - d.getTime();
-        timer_element.innerText = (delta / 1000);
+        let text = ""+(delta / 1000)
+        TIMER_ELEMENT.innerText = text + "0.000".substring(text.length);
         if (delta <= beep_time) {
             beep_time -= ms_between_beeps;
             audio.play();
         }
         if (delta < 0) {
-            timer_element.innerText = "0.000";
+            TIMER_ELEMENT.innerText = "0.000";
             stopTimer();
         }
     }, 10);
@@ -504,7 +516,7 @@ function runTimer(start) {
 
 function stopTimer() {
     window.clearInterval(ivar);
-    $("#timer").get()[0].innerText = "0.000";
+    TIMER_ELEMENT.innerText = "0.000";
 }
 
 function clearFrameData(div = "#div-fwi-1") {
@@ -513,33 +525,62 @@ function clearFrameData(div = "#div-fwi-1") {
 
 function putFrameData(frame, rank, div = "#div-fwi-1", closeButton = false) {
     // let raceData = generateChocoboRaceData(new RNG(BigInt(frame)), rank);
-    let raceData = fetchRaceData(frame, rank);
-    let table = $("<table class='table-race-data'>");
-    if (closeButton) {
-        table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
-    } else {
-        table.append(`<tr><th colspan='5'>${frame} [${rank}]</th></tr>`);
-    }
-    table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
-    for (let j = 0; j < raceData.items.length; j++) {
-        let item = ITEM_NAMES[raceData.items[j]];
-        table.append(`<tr><td colspan='5'>${item}</td></tr>`);
-    }
-    table.append(`<tr><th colspan='5'>Racers</th></tr>`);
-    for (let j = 0; j < raceData.names.length; j++) {
-        let name = CHOCO_NAMES[raceData.names[j]];
-        table.append(`<tr><td colspan='5'>${name}</td></tr>`);
-    }
-    table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
-    for (let j = 0; j < 3; j++) {
-        let row = $("<tr></tr>");
-        for (let k = 0; k < 5; k++) {
-            let card = raceData.tileCards[j * 5 + k] + 1;
-            row.append(`<td>${card}</td>`)
+    fetchRaceDataRows(frame, rank).then((rows) => {
+        let raceData = dbToRaceData(rows[0]);
+        let table = $("<table class='table-race-data'>");
+        if (closeButton) {
+            table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
+        } else {
+            table.append(`<tr><th colspan='5'>${frame} [${rank}]</th></tr>`);
         }
-        table.append(row)
-    }
-    $(div).append(table);
+        table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
+        for (let j = 0; j < raceData.items.length; j++) {
+            let item = ITEM_NAMES[raceData.items[j]];
+            table.append(`<tr><td colspan='5'>${item}</td></tr>`);
+        }
+        table.append(`<tr><th colspan='5'>Racers</th></tr>`);
+        for (let j = 0; j < raceData.names.length; j++) {
+            let name = CHOCO_NAMES[raceData.names[j]];
+            table.append(`<tr><td colspan='5'>${name}</td></tr>`);
+        }
+        table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
+        for (let j = 0; j < 3; j++) {
+            let row = $("<tr></tr>");
+            for (let k = 0; k < 5; k++) {
+                let card = raceData.tileCards[j * 5 + k] + 1;
+                row.append(`<td>${card}</td>`)
+            }
+            table.append(row)
+        }
+        $(div).append(table);
+    });
+    // let raceData = fetchRaceData(frame, rank);
+    // let table = $("<table class='table-race-data'>");
+    // if (closeButton) {
+    //     table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
+    // } else {
+    //     table.append(`<tr><th colspan='5'>${frame} [${rank}]</th></tr>`);
+    // }
+    // table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
+    // for (let j = 0; j < raceData.items.length; j++) {
+    //     let item = ITEM_NAMES[raceData.items[j]];
+    //     table.append(`<tr><td colspan='5'>${item}</td></tr>`);
+    // }
+    // table.append(`<tr><th colspan='5'>Racers</th></tr>`);
+    // for (let j = 0; j < raceData.names.length; j++) {
+    //     let name = CHOCO_NAMES[raceData.names[j]];
+    //     table.append(`<tr><td colspan='5'>${name}</td></tr>`);
+    // }
+    // table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
+    // for (let j = 0; j < 3; j++) {
+    //     let row = $("<tr></tr>");
+    //     for (let k = 0; k < 5; k++) {
+    //         let card = raceData.tileCards[j * 5 + k] + 1;
+    //         row.append(`<td>${card}</td>`)
+    //     }
+    //     table.append(row)
+    // }
+    // $(div).append(table);
 }
 
 function clickPowerOn() {
@@ -604,18 +645,8 @@ function clickCalculateFrame() {
         }
         // sort by number of frames away from estimate, get minimum
         let closestFrame = rows.sort((a, b) => Math.abs(a.Frame - frames_first_estimate) - Math.abs(b.Frame - frames_first_estimate))[0];
-        console.log(closestFrame);
         $("#input-calibration-frame").val(closestFrame.Frame);
     });
-
-    // console.log(frames_first_estimate);
-    // let rank = $("input[type='radio'][name='rank']:checked").val();
-    // let offset = offsetToNearestMatchingFrame(frames_first_estimate, items, names, rank);
-    // if (offset === null) {
-    //     window.alert("Could not locate frame.");
-    //     return;
-    // }
-    // $("#input-calibration-frame").val(frames_first_estimate + offset);
 }
 
 function clickCalibrate() {
@@ -655,7 +686,7 @@ async function getNextWindow(startFrame, windowSize, maxFrames, items, rank) {
                     and Length >= ${windowSize}
                     order by Frame asc
                     limit 1`
-    return window.electronAPI.query(query)
+    return window.electronAPI.query(query);
 }
 
 // function isGoodFrame(frame, items, rank) {

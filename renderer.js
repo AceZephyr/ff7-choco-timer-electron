@@ -194,250 +194,258 @@ function offsetToNearestMatchingFrame(frame, items, names, rank) {
     return null;
 }
 
-function generateChocoboRaceData(rng = null, rank = 'C', _B747C = 0xffffffff) {
-    if (rng == null) {
-        rng = new RNG();
-    }
-
-    let frame = BigInt.asUintN(32, rng.rngState);
-
-    for (let i = 0; i < 0x28; i++) {
-        rng.rng();
-        rng.rng();
-    }
-    rng.rng();
-    for (let i = 0; i < 5; i++) {
-        rng.rng();
-        rng.rng();
-        rng.rng();
-        rng.rng();
-        rng.rng();
-        rng.rng();
-    }
-    let names = new Array(43);
-    for (let i = 0; i < names.length; i++) {
-        names[i] = BigInt(i);
-    }
-    let hilo = 0n;
-    let v0 = 0n;
-    let v1 = 0n;
-    let s0 = 0n;
-    let s1 = 0n;
-    let s2 = 0n;
-    let s3 = 0x2FA0BE83n;
-    let t2 = 0n;
-    let t7 = 0n;
-    let a0 = 0n;
-    let a1 = 0n;
-    let a2 = 0n;
-
-    while (s1 < 0xC8) {
-        s1 += 1n;
-        v0 = rng.rng();
-        hilo = BigInt.asUintN(64, v0 * s3);
-        t2 = BigInt.asUintN(32, hilo >> 32n);
-        v1 = v0 >> 0x1Fn;
-        a0 = t2 >> 3n;
-        s0 = a0 - v1;
-        v1 = s0 << 1n;
-        v1 += s0;
-        v1 = v1 << 2n;
-        v1 -= s0;
-        v1 = v1 << 2n;
-        v1 -= s0;
-        s0 = v0 - v1;
-
-        let swap1 = s0;
-
-        v0 = rng.rng();
-        hilo = BigInt.asUintN(64, v0 * s3);
-        t2 = BigInt.asUintN(32, hilo >> 32n);
-        v1 = v0 >> 0x1Fn;
-        a0 = t2 >> 3n;
-        a0 -= v1;
-        v1 = a0 << 1n;
-        v1 += a0;
-        v1 = v1 << 2n;
-        v1 -= a0;
-        v1 = v1 << 2n;
-        v1 -= a0;
-        a0 = v0 - v1;
-
-        let swap2 = a0;
-
-        a0 = names[swap2];
-        a1 = names[swap1];
-        names[swap1] = a0;
-        names[swap2] = a1;
-    }
-
-    let rewardTable = REWARD_TABLES[rank];
-    let rewardPool = [0xFFn, 0xFFn, 0xFFn];
-
-    s1 = 0n;
-    s2 = 0n;
-    s3 = 0xFFFFFFFFn;
-
-    while (s1 !== 3n) {
-        v0 = mod(rng.rng(), BigInt(rewardTable.length));
-        let item = rewardTable[v0];
-        if (rewardPool[0] === item[0] || rewardPool[1] === item[0] || rewardPool[2] === item[0]) {
-            continue;
-        }
-        if (rewardTable[v0][1] !== 0) {
-            if (s2 !== 0n) {
-                if (item[3] !== 0) {
-                    continue;
-                }
-            }
-            if (_B747C !== 0) {
-                rewardPool[s1] = item[0];
-                s1 += 1n;
-            }
-            if (rewardTable[v0][3] === 0) {
-                continue;
-            }
-            s3 = item[0];
-            s2 = 0xFFFFFFFFn;
-            continue;
-        }
-        if (s2 !== 0n) {
-            if (rewardTable[v0][3] !== 0) {
-                continue;
-            }
-        }
-        rewardPool[s1] = item[0];
-        s1 += 1n;
-        if (rewardTable[v0][3] === 0) {
-            continue;
-        }
-        s3 = item[0];
-        s2 = 0xFFFFFFFFn;
-    }
-
-    // rewardPool.sort((a,b) => a-b);
-    rewardPool.sort((a, b) => {
-        if (a > b) {
-            return 1;
-        } else if (a < b) {
-            return -1;
-        } else {
-            return 0;
-        }
-    });
-
-    if (s3 !== 0xFFFFFFFFn) {
-        if (rewardPool[0] === s3) {
-            v0 = rewardPool[2];
-            rewardPool[2] = BigInt.asUintN(8, s3);
-            rewardPool[0] = BigInt.asUintN(8, v0);
-        } else if (rewardPool[1] === s3) {
-            v0 = rewardPool[2];
-            rewardPool[2] = BigInt.asUintN(8, s3);
-            rewardPool[1] = BigInt.asUintN(8, v0);
-        }
-    }
-
-    let tileBufferItems = new Array(15);
-    let tileBufferCards = new Array(15);
-
-    for (let i = 0; i < 7; i++) {
-        tileBufferItems[i] = rewardPool[0];
-        tileBufferCards[i] = 0;
-    }
-    for (let i = 7; i < 12; i++) {
-        tileBufferItems[i] = rewardPool[1];
-        tileBufferCards[i] = 1;
-    }
-    for (let i = 12; i < 12 + 3; i++) {
-        tileBufferItems[i] = rewardPool[2];
-        tileBufferCards[i] = 2;
-    }
-
-    s1 = 0n;
-    s3 = 0x88888889n;
-    let s3l = -0x77777777n;
-
-    while (s1 < 100n) {
-        s1 += 2n;
-        v0 = rng.rng();
-        a0 = v0 >> 0x1Fn;
-        hilo = BigInt.asUintN(64, v0 * s3l);
-        t7 = BigInt.asUintN(32, hilo >> 32n);
-        v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-        s0 = v1 - a0;
-        v1 = s0 << 4n;
-        v1 = v1 - s0;
-        s0 = v0 - v1;
-
-        let swap1 = s0;
-
-        v0 = rng.rng();
-        hilo = BigInt.asUintN(64, v0 * s3l);
-        t7 = BigInt.asUintN(32, hilo >> 32n);
-        a0 = v0 >> 0x1Fn;
-
-        a2 = tileBufferItems[swap1];
-        v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-        a0 = v1 - a0;
-        v1 = a0 << 4n;
-        v1 -= a0;
-        a0 = v0 - v1;
-
-        let swap2 = a0;
-
-        v0 = tileBufferItems[swap2];
-        tileBufferItems[swap1] = v0;
-        v0 = tileBufferCards[swap2];
-        tileBufferItems[swap2] = a2;
-        a2 = tileBufferCards[swap1];
-        tileBufferCards[swap1] = v0;
-        tileBufferCards[swap2] = a2;
-
-        v0 = rng.rng();
-        hilo = BigInt.asUintN(64, v0 * s3l);
-        t7 = BigInt.asUintN(32, hilo >> 32n);
-        a0 = v0 >> 0x1Fn;
-        v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-        s0 = v1 - a0;
-        v1 = s0 << 4n;
-        v1 -= s0;
-        s0 = v0 - v1;
-
-        swap1 = s0;
-
-        v0 = rng.rng();
-        hilo = BigInt.asUintN(64, v0 * s3l);
-        t7 = BigInt.asUintN(32, hilo >> 32n);
-        a2 = tileBufferItems[s0];
-        v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-        a0 = v1 - a0;
-        v1 = a0 << 4n;
-        v1 -= a0;
-        a0 = v0 - v1;
-
-        swap2 = a0;
-
-        v0 = tileBufferItems[swap2];
-        tileBufferItems[swap1] = v0;
-        v0 = tileBufferCards[swap2];
-        tileBufferItems[swap2] = a2;
-        a2 = tileBufferCards[swap1];
-        tileBufferCards[swap1] = v0;
-        tileBufferCards[swap2] = a2;
-    }
-
-    let rewardPoolUint = new Array(rewardPool.length);
-    for (let i = 0; i < rewardPool.length; i++) {
-        rewardPoolUint[i] = rewardPool[i];
-    }
-
-    let namesOut = new Array(5);
-    for (let i = 0; i < 5; i++) {
-        namesOut[i] = names[i + 1];
-    }
-    return new ChocoboData(rewardPoolUint, tileBufferCards, namesOut);
+function fetchRaceData(frame, rank = 'C') {
+    let table = `${rank}_Prizes`
+    let query = `select * from ${table}
+                    where Frame = ${frame}
+                    limit 1`
+    window.electronAPI.query(query)
 }
+
+// function generateChocoboRaceData(rng = null, rank = 'C', _B747C = 0xffffffff) {
+//     if (rng == null) {
+//         rng = new RNG();
+//     }
+//
+//     let frame = BigInt.asUintN(32, rng.rngState);
+//
+//     for (let i = 0; i < 0x28; i++) {
+//         rng.rng();
+//         rng.rng();
+//     }
+//     rng.rng();
+//     for (let i = 0; i < 5; i++) {
+//         rng.rng();
+//         rng.rng();
+//         rng.rng();
+//         rng.rng();
+//         rng.rng();
+//         rng.rng();
+//     }
+//     let names = new Array(43);
+//     for (let i = 0; i < names.length; i++) {
+//         names[i] = BigInt(i);
+//     }
+//     let hilo = 0n;
+//     let v0 = 0n;
+//     let v1 = 0n;
+//     let s0 = 0n;
+//     let s1 = 0n;
+//     let s2 = 0n;
+//     let s3 = 0x2FA0BE83n;
+//     let t2 = 0n;
+//     let t7 = 0n;
+//     let a0 = 0n;
+//     let a1 = 0n;
+//     let a2 = 0n;
+//
+//     while (s1 < 0xC8) {
+//         s1 += 1n;
+//         v0 = rng.rng();
+//         hilo = BigInt.asUintN(64, v0 * s3);
+//         t2 = BigInt.asUintN(32, hilo >> 32n);
+//         v1 = v0 >> 0x1Fn;
+//         a0 = t2 >> 3n;
+//         s0 = a0 - v1;
+//         v1 = s0 << 1n;
+//         v1 += s0;
+//         v1 = v1 << 2n;
+//         v1 -= s0;
+//         v1 = v1 << 2n;
+//         v1 -= s0;
+//         s0 = v0 - v1;
+//
+//         let swap1 = s0;
+//
+//         v0 = rng.rng();
+//         hilo = BigInt.asUintN(64, v0 * s3);
+//         t2 = BigInt.asUintN(32, hilo >> 32n);
+//         v1 = v0 >> 0x1Fn;
+//         a0 = t2 >> 3n;
+//         a0 -= v1;
+//         v1 = a0 << 1n;
+//         v1 += a0;
+//         v1 = v1 << 2n;
+//         v1 -= a0;
+//         v1 = v1 << 2n;
+//         v1 -= a0;
+//         a0 = v0 - v1;
+//
+//         let swap2 = a0;
+//
+//         a0 = names[swap2];
+//         a1 = names[swap1];
+//         names[swap1] = a0;
+//         names[swap2] = a1;
+//     }
+//
+//     let rewardTable = REWARD_TABLES[rank];
+//     let rewardPool = [0xFFn, 0xFFn, 0xFFn];
+//
+//     s1 = 0n;
+//     s2 = 0n;
+//     s3 = 0xFFFFFFFFn;
+//
+//     while (s1 !== 3n) {
+//         v0 = mod(rng.rng(), BigInt(rewardTable.length));
+//         let item = rewardTable[v0];
+//         if (rewardPool[0] === item[0] || rewardPool[1] === item[0] || rewardPool[2] === item[0]) {
+//             continue;
+//         }
+//         if (rewardTable[v0][1] !== 0) {
+//             if (s2 !== 0n) {
+//                 if (item[3] !== 0) {
+//                     continue;
+//                 }
+//             }
+//             if (_B747C !== 0) {
+//                 rewardPool[s1] = item[0];
+//                 s1 += 1n;
+//             }
+//             if (rewardTable[v0][3] === 0) {
+//                 continue;
+//             }
+//             s3 = item[0];
+//             s2 = 0xFFFFFFFFn;
+//             continue;
+//         }
+//         if (s2 !== 0n) {
+//             if (rewardTable[v0][3] !== 0) {
+//                 continue;
+//             }
+//         }
+//         rewardPool[s1] = item[0];
+//         s1 += 1n;
+//         if (rewardTable[v0][3] === 0) {
+//             continue;
+//         }
+//         s3 = item[0];
+//         s2 = 0xFFFFFFFFn;
+//     }
+//
+//     // rewardPool.sort((a,b) => a-b);
+//     rewardPool.sort((a, b) => {
+//         if (a > b) {
+//             return 1;
+//         } else if (a < b) {
+//             return -1;
+//         } else {
+//             return 0;
+//         }
+//     });
+//
+//     if (s3 !== 0xFFFFFFFFn) {
+//         if (rewardPool[0] === s3) {
+//             v0 = rewardPool[2];
+//             rewardPool[2] = BigInt.asUintN(8, s3);
+//             rewardPool[0] = BigInt.asUintN(8, v0);
+//         } else if (rewardPool[1] === s3) {
+//             v0 = rewardPool[2];
+//             rewardPool[2] = BigInt.asUintN(8, s3);
+//             rewardPool[1] = BigInt.asUintN(8, v0);
+//         }
+//     }
+//
+//     let tileBufferItems = new Array(15);
+//     let tileBufferCards = new Array(15);
+//
+//     for (let i = 0; i < 7; i++) {
+//         tileBufferItems[i] = rewardPool[0];
+//         tileBufferCards[i] = 0;
+//     }
+//     for (let i = 7; i < 12; i++) {
+//         tileBufferItems[i] = rewardPool[1];
+//         tileBufferCards[i] = 1;
+//     }
+//     for (let i = 12; i < 12 + 3; i++) {
+//         tileBufferItems[i] = rewardPool[2];
+//         tileBufferCards[i] = 2;
+//     }
+//
+//     s1 = 0n;
+//     s3 = 0x88888889n;
+//     let s3l = -0x77777777n;
+//
+//     while (s1 < 100n) {
+//         s1 += 2n;
+//         v0 = rng.rng();
+//         a0 = v0 >> 0x1Fn;
+//         hilo = BigInt.asUintN(64, v0 * s3l);
+//         t7 = BigInt.asUintN(32, hilo >> 32n);
+//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
+//         s0 = v1 - a0;
+//         v1 = s0 << 4n;
+//         v1 = v1 - s0;
+//         s0 = v0 - v1;
+//
+//         let swap1 = s0;
+//
+//         v0 = rng.rng();
+//         hilo = BigInt.asUintN(64, v0 * s3l);
+//         t7 = BigInt.asUintN(32, hilo >> 32n);
+//         a0 = v0 >> 0x1Fn;
+//
+//         a2 = tileBufferItems[swap1];
+//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
+//         a0 = v1 - a0;
+//         v1 = a0 << 4n;
+//         v1 -= a0;
+//         a0 = v0 - v1;
+//
+//         let swap2 = a0;
+//
+//         v0 = tileBufferItems[swap2];
+//         tileBufferItems[swap1] = v0;
+//         v0 = tileBufferCards[swap2];
+//         tileBufferItems[swap2] = a2;
+//         a2 = tileBufferCards[swap1];
+//         tileBufferCards[swap1] = v0;
+//         tileBufferCards[swap2] = a2;
+//
+//         v0 = rng.rng();
+//         hilo = BigInt.asUintN(64, v0 * s3l);
+//         t7 = BigInt.asUintN(32, hilo >> 32n);
+//         a0 = v0 >> 0x1Fn;
+//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
+//         s0 = v1 - a0;
+//         v1 = s0 << 4n;
+//         v1 -= s0;
+//         s0 = v0 - v1;
+//
+//         swap1 = s0;
+//
+//         v0 = rng.rng();
+//         hilo = BigInt.asUintN(64, v0 * s3l);
+//         t7 = BigInt.asUintN(32, hilo >> 32n);
+//         a2 = tileBufferItems[s0];
+//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
+//         a0 = v1 - a0;
+//         v1 = a0 << 4n;
+//         v1 -= a0;
+//         a0 = v0 - v1;
+//
+//         swap2 = a0;
+//
+//         v0 = tileBufferItems[swap2];
+//         tileBufferItems[swap1] = v0;
+//         v0 = tileBufferCards[swap2];
+//         tileBufferItems[swap2] = a2;
+//         a2 = tileBufferCards[swap1];
+//         tileBufferCards[swap1] = v0;
+//         tileBufferCards[swap2] = a2;
+//     }
+//
+//     let rewardPoolUint = new Array(rewardPool.length);
+//     for (let i = 0; i < rewardPool.length; i++) {
+//         rewardPoolUint[i] = rewardPool[i];
+//     }
+//
+//     let namesOut = new Array(5);
+//     for (let i = 0; i < 5; i++) {
+//         namesOut[i] = names[i + 1];
+//     }
+//     return new ChocoboData(rewardPoolUint, tileBufferCards, namesOut);
+// }
 
 let ivar;
 
@@ -504,7 +512,8 @@ function clearFrameData(div = "#div-fwi-1") {
 }
 
 function putFrameData(frame, rank, div = "#div-fwi-1", closeButton = false) {
-    let raceData = generateChocoboRaceData(new RNG(BigInt(frame)), rank);
+    // let raceData = generateChocoboRaceData(new RNG(BigInt(frame)), rank);
+    let raceData = fetchRaceData(frame, rank);
     let table = $("<table class='table-race-data'>");
     if (closeButton) {
         table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
@@ -563,23 +572,50 @@ function clickCalculateFrame() {
     let names = new Array(5);
     for (let i = 0; i < items.length; i++) {
         items[i] = ITEM_NAMES.indexOf(itemsStrs[i]);
-        if (items[i] === -1) {
-            window.alert("Must input all items in item pool.");
-            return;
-        }
+        // if (items[i] === -1) {
+        //     window.alert("Must input all items in item pool.");
+        //     return;
+        // }
     }
     for (let i = 0; i < names.length; i++) {
         names[i] = CHOCO_NAMES.indexOf(namesStrs[i]);
     }
-    let frames_first_estimate = framesBetweenTimes(calibration_race_start_time, power_on_time);
-    console.log(frames_first_estimate);
     let rank = $("input[type='radio'][name='rank']:checked").val();
-    let offset = offsetToNearestMatchingFrame(frames_first_estimate, items, names, rank);
-    if (offset === null) {
-        window.alert("Could not locate frame.");
-        return;
+    let table = `${rank}_Prizes`;
+    let conditions = [];
+    for (let i = 0; i < items.length; i++) {
+        if (items[i] !== -1) {
+            conditions.push(`Item${i + 1} = ${items[i]}`);
+        }
     }
-    $("#input-calibration-frame").val(frames_first_estimate + offset);
+    for (let i = 0; i < names.length; i++) {
+        if (names[i] !== -1) {
+            conditions.push(`Name${i + 2} = ${names[i]}`);
+        }
+    }
+    let frames_first_estimate = framesBetweenTimes(calibration_race_start_time, power_on_time);
+    let query = `select * from ${table}
+                    where ${conditions.join(' and ')}
+                    order by Frame asc`;
+    window.electronAPI.query(query).then((rows) => {
+        if (rows.length === 0) {
+            window.alert("No matching frame exists. (Check selected rank?)")
+            return;
+        }
+        // sort by number of frames away from estimate, get minimum
+        let closestFrame = rows.sort((a, b) => Math.abs(a.Frame - frames_first_estimate) - Math.abs(b.Frame - frames_first_estimate))[0];
+        console.log(closestFrame);
+        $("#input-calibration-frame").val(closestFrame.Frame);
+    });
+
+    // console.log(frames_first_estimate);
+    // let rank = $("input[type='radio'][name='rank']:checked").val();
+    // let offset = offsetToNearestMatchingFrame(frames_first_estimate, items, names, rank);
+    // if (offset === null) {
+    //     window.alert("Could not locate frame.");
+    //     return;
+    // }
+    // $("#input-calibration-frame").val(frames_first_estimate + offset);
 }
 
 function clickCalibrate() {

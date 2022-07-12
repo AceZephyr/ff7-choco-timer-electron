@@ -3,6 +3,13 @@ function mod(a, b) {
     return (a % b + b) % b;
 }
 
+const RANK_MAP = {
+    'C': 0,
+    'B': 1,
+    'A': 2,
+    'S': 3
+}
+
 const IDS = {
     "item-pool-1": "Item1",
     "item-pool-2": "Item2",
@@ -140,6 +147,8 @@ const REWARD_TABLES = {
     ]
 };
 
+const SOLUTION_STRINGS = [];
+
 const AUDIO_MAP = {
     "f-clack": $("#audio-f-clack").get()[0],
     "f-click1": $("#audio-f-click1").get()[0],
@@ -151,22 +160,6 @@ const AUDIO_MAP = {
     "e-tick": $("#audio-e-tick").get()[0]
 }
 
-
-// function frameMatches(frame, items, names, rank = 'C') {
-//     let data = generateChocoboRaceData(new RNG(BigInt.asUintN(32, BigInt(frame))), rank);
-//     for (let i = 0; i < items.length; i++) {
-//         if (data.items[i] !== BigInt(items[i])) {
-//             return false;
-//         }
-//     }
-//     for (let i = 0; i < names.length; i++) {
-//         if (names[i] !== -1 && data.names[i] !== BigInt(names[i])) {
-//             return false;
-//         }
-//     }
-//     return true;
-// }
-
 function framesBetweenTimes(time1, time2) {
     return Math.round(((time1 - time2) * FPS) / 1000);
 }
@@ -175,31 +168,31 @@ function framesToMilliseconds(frame) {
     return frame * (1000 / FPS);
 }
 
-// function offsetToNearestMatchingFrame(frame, items, names, rank) {
-//
-//     let search_window_size = FRAME_CALCULATION_SEARCH_WINDOW_SIZE;
-//
-//     if (frameMatches(frame, items, names, rank)) {
-//         return 0;
-//     }
-//
-//     for (let i = 1; i < search_window_size; i += 1) {
-//         if (frame - i >= 0 && frameMatches(frame - i, items, names, rank)) {
-//             return -i;
-//         }
-//         if (frameMatches(frame + i, items, names, rank)) {
-//             return i;
-//         }
-//     }
-//
-//     return null;
-// }
-
-function fetchRaceDataRows(frame, rank = 'C') {
-    let table = `${rank}_Prizes`
-    let query = `select * from ${table}
-                    where Frame = ${frame}
+function fetchRaceDataRows(frame, rank = 0) {
+    let query = `select * from Prizes
+                    where Rank = ${rank}
+                    Frame = ${frame}
                     limit 1`
+    return window.electronAPI.query(query)
+}
+
+function fetchRangePrizes(startFrame, endFrame, rank = 0) {
+    let query = `select * from Prizes
+                    where Rank = ${rank}
+                    and Frame >= ${startFrame}
+                    and Frame <= ${endFrame}
+                    order by Frame asc`
+    console.log(query)
+    return window.electronAPI.query(query)
+}
+
+function fetchRangeRaces(startFrame, endFrame, rank = 0) {
+    let query = `select * from Races
+                    where Rank = ${rank}
+                    and Frame >= ${startFrame}
+                    and Frame <= ${endFrame}
+                    order by Frame asc`
+    console.log(query)
     return window.electronAPI.query(query)
 }
 
@@ -209,255 +202,16 @@ function dbToRaceData(dbRow) {
         [dbRow.Card1_1, dbRow.Card1_2, dbRow.Card1_3, dbRow.Card1_4, dbRow.Card1_5,
             dbRow.Card2_1, dbRow.Card2_2, dbRow.Card2_3, dbRow.Card2_4, dbRow.Card2_5,
             dbRow.Card3_1, dbRow.Card3_2, dbRow.Card3_3, dbRow.Card3_4, dbRow.Card3_5],
-        [dbRow.Name2,dbRow.Name3,dbRow.Name4,dbRow.Name5,dbRow.Name6]);
+        [dbRow.Name2, dbRow.Name3, dbRow.Name4, dbRow.Name5, dbRow.Name6]);
 }
 
-// function generateChocoboRaceData(rng = null, rank = 'C', _B747C = 0xffffffff) {
-//     if (rng == null) {
-//         rng = new RNG();
-//     }
-//
-//     let frame = BigInt.asUintN(32, rng.rngState);
-//
-//     for (let i = 0; i < 0x28; i++) {
-//         rng.rng();
-//         rng.rng();
-//     }
-//     rng.rng();
-//     for (let i = 0; i < 5; i++) {
-//         rng.rng();
-//         rng.rng();
-//         rng.rng();
-//         rng.rng();
-//         rng.rng();
-//         rng.rng();
-//     }
-//     let names = new Array(43);
-//     for (let i = 0; i < names.length; i++) {
-//         names[i] = BigInt(i);
-//     }
-//     let hilo = 0n;
-//     let v0 = 0n;
-//     let v1 = 0n;
-//     let s0 = 0n;
-//     let s1 = 0n;
-//     let s2 = 0n;
-//     let s3 = 0x2FA0BE83n;
-//     let t2 = 0n;
-//     let t7 = 0n;
-//     let a0 = 0n;
-//     let a1 = 0n;
-//     let a2 = 0n;
-//
-//     while (s1 < 0xC8) {
-//         s1 += 1n;
-//         v0 = rng.rng();
-//         hilo = BigInt.asUintN(64, v0 * s3);
-//         t2 = BigInt.asUintN(32, hilo >> 32n);
-//         v1 = v0 >> 0x1Fn;
-//         a0 = t2 >> 3n;
-//         s0 = a0 - v1;
-//         v1 = s0 << 1n;
-//         v1 += s0;
-//         v1 = v1 << 2n;
-//         v1 -= s0;
-//         v1 = v1 << 2n;
-//         v1 -= s0;
-//         s0 = v0 - v1;
-//
-//         let swap1 = s0;
-//
-//         v0 = rng.rng();
-//         hilo = BigInt.asUintN(64, v0 * s3);
-//         t2 = BigInt.asUintN(32, hilo >> 32n);
-//         v1 = v0 >> 0x1Fn;
-//         a0 = t2 >> 3n;
-//         a0 -= v1;
-//         v1 = a0 << 1n;
-//         v1 += a0;
-//         v1 = v1 << 2n;
-//         v1 -= a0;
-//         v1 = v1 << 2n;
-//         v1 -= a0;
-//         a0 = v0 - v1;
-//
-//         let swap2 = a0;
-//
-//         a0 = names[swap2];
-//         a1 = names[swap1];
-//         names[swap1] = a0;
-//         names[swap2] = a1;
-//     }
-//
-//     let rewardTable = REWARD_TABLES[rank];
-//     let rewardPool = [0xFFn, 0xFFn, 0xFFn];
-//
-//     s1 = 0n;
-//     s2 = 0n;
-//     s3 = 0xFFFFFFFFn;
-//
-//     while (s1 !== 3n) {
-//         v0 = mod(rng.rng(), BigInt(rewardTable.length));
-//         let item = rewardTable[v0];
-//         if (rewardPool[0] === item[0] || rewardPool[1] === item[0] || rewardPool[2] === item[0]) {
-//             continue;
-//         }
-//         if (rewardTable[v0][1] !== 0) {
-//             if (s2 !== 0n) {
-//                 if (item[3] !== 0) {
-//                     continue;
-//                 }
-//             }
-//             if (_B747C !== 0) {
-//                 rewardPool[s1] = item[0];
-//                 s1 += 1n;
-//             }
-//             if (rewardTable[v0][3] === 0) {
-//                 continue;
-//             }
-//             s3 = item[0];
-//             s2 = 0xFFFFFFFFn;
-//             continue;
-//         }
-//         if (s2 !== 0n) {
-//             if (rewardTable[v0][3] !== 0) {
-//                 continue;
-//             }
-//         }
-//         rewardPool[s1] = item[0];
-//         s1 += 1n;
-//         if (rewardTable[v0][3] === 0) {
-//             continue;
-//         }
-//         s3 = item[0];
-//         s2 = 0xFFFFFFFFn;
-//     }
-//
-//     // rewardPool.sort((a,b) => a-b);
-//     rewardPool.sort((a, b) => {
-//         if (a > b) {
-//             return 1;
-//         } else if (a < b) {
-//             return -1;
-//         } else {
-//             return 0;
-//         }
-//     });
-//
-//     if (s3 !== 0xFFFFFFFFn) {
-//         if (rewardPool[0] === s3) {
-//             v0 = rewardPool[2];
-//             rewardPool[2] = BigInt.asUintN(8, s3);
-//             rewardPool[0] = BigInt.asUintN(8, v0);
-//         } else if (rewardPool[1] === s3) {
-//             v0 = rewardPool[2];
-//             rewardPool[2] = BigInt.asUintN(8, s3);
-//             rewardPool[1] = BigInt.asUintN(8, v0);
-//         }
-//     }
-//
-//     let tileBufferItems = new Array(15);
-//     let tileBufferCards = new Array(15);
-//
-//     for (let i = 0; i < 7; i++) {
-//         tileBufferItems[i] = rewardPool[0];
-//         tileBufferCards[i] = 0;
-//     }
-//     for (let i = 7; i < 12; i++) {
-//         tileBufferItems[i] = rewardPool[1];
-//         tileBufferCards[i] = 1;
-//     }
-//     for (let i = 12; i < 12 + 3; i++) {
-//         tileBufferItems[i] = rewardPool[2];
-//         tileBufferCards[i] = 2;
-//     }
-//
-//     s1 = 0n;
-//     s3 = 0x88888889n;
-//     let s3l = -0x77777777n;
-//
-//     while (s1 < 100n) {
-//         s1 += 2n;
-//         v0 = rng.rng();
-//         a0 = v0 >> 0x1Fn;
-//         hilo = BigInt.asUintN(64, v0 * s3l);
-//         t7 = BigInt.asUintN(32, hilo >> 32n);
-//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-//         s0 = v1 - a0;
-//         v1 = s0 << 4n;
-//         v1 = v1 - s0;
-//         s0 = v0 - v1;
-//
-//         let swap1 = s0;
-//
-//         v0 = rng.rng();
-//         hilo = BigInt.asUintN(64, v0 * s3l);
-//         t7 = BigInt.asUintN(32, hilo >> 32n);
-//         a0 = v0 >> 0x1Fn;
-//
-//         a2 = tileBufferItems[swap1];
-//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-//         a0 = v1 - a0;
-//         v1 = a0 << 4n;
-//         v1 -= a0;
-//         a0 = v0 - v1;
-//
-//         let swap2 = a0;
-//
-//         v0 = tileBufferItems[swap2];
-//         tileBufferItems[swap1] = v0;
-//         v0 = tileBufferCards[swap2];
-//         tileBufferItems[swap2] = a2;
-//         a2 = tileBufferCards[swap1];
-//         tileBufferCards[swap1] = v0;
-//         tileBufferCards[swap2] = a2;
-//
-//         v0 = rng.rng();
-//         hilo = BigInt.asUintN(64, v0 * s3l);
-//         t7 = BigInt.asUintN(32, hilo >> 32n);
-//         a0 = v0 >> 0x1Fn;
-//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-//         s0 = v1 - a0;
-//         v1 = s0 << 4n;
-//         v1 -= s0;
-//         s0 = v0 - v1;
-//
-//         swap1 = s0;
-//
-//         v0 = rng.rng();
-//         hilo = BigInt.asUintN(64, v0 * s3l);
-//         t7 = BigInt.asUintN(32, hilo >> 32n);
-//         a2 = tileBufferItems[s0];
-//         v1 = BigInt.asUintN(32, t7 + v0) >> 3n;
-//         a0 = v1 - a0;
-//         v1 = a0 << 4n;
-//         v1 -= a0;
-//         a0 = v0 - v1;
-//
-//         swap2 = a0;
-//
-//         v0 = tileBufferItems[swap2];
-//         tileBufferItems[swap1] = v0;
-//         v0 = tileBufferCards[swap2];
-//         tileBufferItems[swap2] = a2;
-//         a2 = tileBufferCards[swap1];
-//         tileBufferCards[swap1] = v0;
-//         tileBufferCards[swap2] = a2;
-//     }
-//
-//     let rewardPoolUint = new Array(rewardPool.length);
-//     for (let i = 0; i < rewardPool.length; i++) {
-//         rewardPoolUint[i] = rewardPool[i];
-//     }
-//
-//     let namesOut = new Array(5);
-//     for (let i = 0; i < 5; i++) {
-//         namesOut[i] = names[i + 1];
-//     }
-//     return new ChocoboData(rewardPoolUint, tileBufferCards, namesOut);
-// }
-
 let ivar;
+
+let WINDOW_MAP = new Map();
+let WINDOW_MAP_FRAMES_LIST_SORTED = [];
+let WINDOW_MAP_ITEM_FLAGS = 0;
+let WINDOW_MAP_FRAME_LIMIT = 0;
+let WINDOW_MAP_RANK = null;
 
 let FPS = parseFloat($("#input-fps").val());
 let BEEPS = parseInt($("#input-beeps").val());
@@ -501,7 +255,7 @@ function runTimer(start) {
     ivar = window.setInterval(function () {
         d = new Date();
         let delta = start - d.getTime();
-        let text = ""+(delta / 1000)
+        let text = "" + (delta / 1000)
         TIMER_ELEMENT.innerText = text + "0.000".substring(text.length);
         if (delta <= beep_time) {
             beep_time -= ms_between_beeps;
@@ -523,64 +277,66 @@ function clearFrameData(div = "#div-fwi-1") {
     $(div).html("");
 }
 
-function putFrameData(frame, rank, div = "#div-fwi-1", closeButton = false) {
-    // let raceData = generateChocoboRaceData(new RNG(BigInt(frame)), rank);
-    fetchRaceDataRows(frame, rank).then((rows) => {
-        let raceData = dbToRaceData(rows[0]);
-        let table = $("<table class='table-race-data'>");
-        if (closeButton) {
-            table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
-        } else {
-            table.append(`<tr><th colspan='5'>${frame} [${rank}]</th></tr>`);
-        }
-        table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
-        for (let j = 0; j < raceData.items.length; j++) {
-            let item = ITEM_NAMES[raceData.items[j]];
-            table.append(`<tr><td colspan='5'>${item}</td></tr>`);
-        }
-        table.append(`<tr><th colspan='5'>Racers</th></tr>`);
-        for (let j = 0; j < raceData.names.length; j++) {
-            let name = CHOCO_NAMES[raceData.names[j]];
-            table.append(`<tr><td colspan='5'>${name}</td></tr>`);
-        }
-        table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
-        for (let j = 0; j < 3; j++) {
-            let row = $("<tr></tr>");
-            for (let k = 0; k < 5; k++) {
-                let card = raceData.tileCards[j * 5 + k] + 1;
-                row.append(`<td>${card}</td>`)
+function putFramesData(startFrame, endFrame, rank, targetPrizes, div = "#div-fwi-1", closeButton = false) {
+    fetchRangePrizes(startFrame, endFrame, rank).then((prizesRows) => {
+        fetchRangeRaces(startFrame, endFrame, rank).then((racesRows) => {
+            let racesByFrame = new Map();
+            for (let i = 0; i < racesRows.length; i++) {
+                let raceData = racesRows[i];
+                if (!racesByFrame.has(raceData.Frame)) {
+                    racesByFrame.set(raceData.Frame, []);
+                }
+                racesByFrame.get(raceData.Frame).push(raceData)
             }
-            table.append(row)
-        }
-        $(div).append(table);
+            for (let i = 0; i < prizesRows.length; i++) {
+                let frame = startFrame + i;
+                let prizeData = dbToRaceData(prizesRows[i]);
+
+                let solutionsByPrize = new Map();
+                for (let raceData of racesByFrame.get(frame)) {
+                    let racePrize = prizeData.items[prizeData.tileCards[raceData.Winner - 2]];
+                    if (targetPrizes.has(racePrize) && !solutionsByPrize.has(racePrize)) {
+                        solutionsByPrize.set(racePrize, raceData);
+                    }
+                }
+
+                let table = $("<table class='table-race-data'>");
+                if (closeButton) {
+                    table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
+                } else {
+                    table.append(`<tr><th colspan='5'>${frame} [${rank}]</th></tr>`);
+                }
+                table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
+                for (let j = 0; j < prizeData.items.length; j++) {
+                    let item = ITEM_NAMES[prizeData.items[j]];
+                    table.append(`<tr><td colspan='5'>${item}</td></tr>`);
+                }
+                table.append(`<tr><th colspan='5'>Racers</th></tr>`);
+                for (let j = 0; j < prizeData.names.length; j++) {
+                    let name = CHOCO_NAMES[prizeData.names[j]];
+                    table.append(`<tr><td colspan='5'>${name}</td></tr>`);
+                }
+                table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
+                for (let j = 0; j < 3; j++) {
+                    let row = $("<tr></tr>");
+                    for (let k = 0; k < 5; k++) {
+                        let card = prizeData.tileCards[j * 5 + k] + 1;
+                        row.append(`<td>${card}</td>`)
+                    }
+                    table.append(row)
+                }
+                table.append(`<tr><th colspan="5">Solution</th></tr>`);
+
+                for (let targetPrize of solutionsByPrize.keys()) {
+                    let raceSolution = solutionsByPrize.get(targetPrize);
+                    table.append(`<tr><td colspan="5">${ITEM_NAMES[targetPrize]}</td></tr>`);
+                    table.append(`<tr><td colspan="5">${raceSolution.Inputs}</td></tr>`);
+                }
+
+                $(div).append(table);
+            }
+        });
     });
-    // let raceData = fetchRaceData(frame, rank);
-    // let table = $("<table class='table-race-data'>");
-    // if (closeButton) {
-    //     table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
-    // } else {
-    //     table.append(`<tr><th colspan='5'>${frame} [${rank}]</th></tr>`);
-    // }
-    // table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
-    // for (let j = 0; j < raceData.items.length; j++) {
-    //     let item = ITEM_NAMES[raceData.items[j]];
-    //     table.append(`<tr><td colspan='5'>${item}</td></tr>`);
-    // }
-    // table.append(`<tr><th colspan='5'>Racers</th></tr>`);
-    // for (let j = 0; j < raceData.names.length; j++) {
-    //     let name = CHOCO_NAMES[raceData.names[j]];
-    //     table.append(`<tr><td colspan='5'>${name}</td></tr>`);
-    // }
-    // table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
-    // for (let j = 0; j < 3; j++) {
-    //     let row = $("<tr></tr>");
-    //     for (let k = 0; k < 5; k++) {
-    //         let card = raceData.tileCards[j * 5 + k] + 1;
-    //         row.append(`<td>${card}</td>`)
-    //     }
-    //     table.append(row)
-    // }
-    // $(div).append(table);
 }
 
 function clickPowerOn() {
@@ -613,16 +369,11 @@ function clickCalculateFrame() {
     let names = new Array(5);
     for (let i = 0; i < items.length; i++) {
         items[i] = ITEM_NAMES.indexOf(itemsStrs[i]);
-        // if (items[i] === -1) {
-        //     window.alert("Must input all items in item pool.");
-        //     return;
-        // }
     }
     for (let i = 0; i < names.length; i++) {
         names[i] = CHOCO_NAMES.indexOf(namesStrs[i]);
     }
-    let rank = $("input[type='radio'][name='rank']:checked").val();
-    let table = `${rank}_Prizes`;
+    let rank = RANK_MAP[$("input[type='radio'][name='rank']:checked").val()];
     let conditions = [];
     for (let i = 0; i < items.length; i++) {
         if (items[i] !== -1) {
@@ -635,8 +386,9 @@ function clickCalculateFrame() {
         }
     }
     let frames_first_estimate = framesBetweenTimes(calibration_race_start_time, power_on_time);
-    let query = `select * from ${table}
-                    where ${conditions.join(' and ')}
+    let query = `select * from Prizes
+                    where Rank = ${rank}
+                    and ${conditions.join(' and ')}
                     order by Frame asc`;
     window.electronAPI.query(query).then((rows) => {
         if (rows.length === 0) {
@@ -660,9 +412,9 @@ function clickCalibrate() {
 }
 
 function clickDisplayFrameData() {
-    let frame = parseInt($("#input-calibration-frame").val());
-    let rank = $("input[type='radio'][name='rank']:checked").val();
-    putFrameData(frame, rank, "#div-fwi-2", true);
+    // let frame = parseInt($("#input-calibration-frame").val());
+    // let rank = RANK_MAP[$("input[type='radio'][name='rank']:checked").val()];
+    // putFramesData(frame, frame, rank, "#div-fwi-2", true);
 }
 
 function clickResetFrameData() {
@@ -679,61 +431,172 @@ function clickClearInput() {
     }
 }
 
-async function getNextWindow(startFrame, windowSize, maxFrames, items, rank) {
-    let table = `${rank}_Race_Windows`
-    let query = `select * from ${table}
-                    where Frame >= ${startFrame}
-                    and Length >= ${windowSize}
-                    order by Frame asc
-                    limit 1`
-    return window.electronAPI.query(query);
+function isWindowMapValid(selItemFlags, rank) {
+    return WINDOW_MAP_ITEM_FLAGS === selItemFlags && WINDOW_MAP_RANK === rank;
 }
 
-// function isGoodFrame(frame, items, rank) {
-//     let chocoData = generateChocoboRaceData(new RNG(BigInt(frame)), rank);
-//     for (let i = 0; i < 5; i++) {
-//         if (items.has(chocoData.items[chocoData.tileCards[i]])) {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
+function wipeWindowMap(selItemFlags, rank) {
+    WINDOW_MAP.clear();
+    WINDOW_MAP_FRAMES_LIST_SORTED = [];
+    WINDOW_MAP_ITEM_FLAGS = selItemFlags;
+    WINDOW_MAP_RANK = rank;
+    WINDOW_MAP_FRAME_LIMIT = 0;
+}
 
-// function getNextWindow(startFrame, windowSize, maxFrames, items, rank) {
-//     for (let frame = startFrame + windowSize; frame <= startFrame + maxFrames; frame += windowSize) {
-//         if (isGoodFrame(frame, items, rank)) {
-//             let windowStart = frame;
-//             let windowEnd = frame;
-//             while (isGoodFrame(windowStart - 1, items, rank)) {
-//                 windowStart--;
-//             }
-//             while (isGoodFrame(windowEnd + 1, items, rank)) {
-//                 windowEnd++;
-//             }
-//             let length = (windowEnd - windowStart) + 1;
-//             if (length >= windowSize) {
-//                 return {
-//                     "start": windowStart,
-//                     "end": windowEnd,
-//                     "length": length,
-//                     "target": windowStart + Math.floor((windowEnd - windowStart) / 2)
-//                 }
-//             }
-//         }
-//     }
-//     return null;
-// }
-
-
-function itemsInRank(items, rank) {
-    for (let i = 0; i < REWARD_TABLES[rank].length; i++) {
-        if (items.has(REWARD_TABLES[rank][i][0])) {
-            return true;
-        }
+function expandWindowMap(selItems, frame, rank, expandByFrames = 30 * 60 * 60, callback = () => undefined) {
+    let frameStart;
+    if (!isWindowMapValid(selItems, rank)) {
+        // current cache map is invalid
+        wipeWindowMap(selItems, rank);
+        frameStart = frame;
+    } else {
+        frameStart = WINDOW_MAP_FRAME_LIMIT;
     }
-    return false;
+    let frameEnd = frame + expandByFrames;
+    let query = `SELECT DISTINCT Races.Frame, Races.Teioh, Races.Winner, Prizes.Item1, Prizes.Item2, Prizes.Item3, Prizes.Card1_1, Prizes.Card1_2, Prizes.Card1_3, Prizes.Card1_4, Prizes.Card1_5 FROM Prizes
+        INNER JOIN Races ON (
+            Races.Frame = Prizes.Frame AND
+            Races.Rank = Prizes.rank
+            )
+        WHERE Races.Teioh = 0
+        and Races.Winner != -1
+        and Prizes.Rank = ${rank}
+        and Races.Frame >= ${frameStart}
+        and Races.Frame < ${frameEnd}
+        ORDER BY Prizes.Frame`;
+    window.electronAPI.query(query).then((rows) => {
+        if (!isWindowMapValid(selItems, rank)) {
+            return;
+        }
+        let winnersByFrame = new Map();
+        for (let r of rows) {
+            let f = r.Frame;
+            if (!winnersByFrame.has(f)) {
+                winnersByFrame.set(f, []);
+            }
+            if (r.Winner !== -1) {
+                winnersByFrame.get(f).push(r.Winner);
+            }
+        }
+        let fdata = new Map();
+        for (let r of rows) {
+            let f = r.Frame;
+            if (!fdata.has(f)) {
+                let items = [r.Item1, r.Item2, r.Item3];
+                let cards = [r.Card1_1, r.Card1_2, r.Card1_3, r.Card1_4, r.Card1_5];
+                let winners = winnersByFrame.get(f);
+                let itemFlags = 0;
+                for (let w of winners) {
+                    itemFlags |= (1 << items[cards[w - 2]]);
+                }
+                if ((itemFlags & WINDOW_MAP_ITEM_FLAGS) !== 0) {
+                    fdata.set(f, {
+                        "teioh": r.Teioh,
+                        "winners": winners,
+                        "items": items,
+                        "itemFlags": itemFlags,
+                        "cards": cards
+                    });
+                }
+            }
+        }
+        let frames_list = Array.from(fdata.keys());
+        frames_list.sort((a, b) => a - b);
+
+        let windowStartFrame = frames_list[0];
+        let windowLength = 1;
+        let itemFlags = fdata.get(frames_list[0])['itemFlags']
+        for (let i = 1; i < frames_list.length; i++) {
+            let f = frames_list[i];
+            let d = fdata.get(f);
+            if (f < WINDOW_MAP_FRAME_LIMIT) {
+                continue;
+            }
+            if (windowStartFrame === f - windowLength) {
+                itemFlags |= fdata.get(f)['itemFlags'];
+                windowLength++;
+            } else {
+                if (windowLength > 1) {
+                    WINDOW_MAP.set(windowStartFrame, {
+                        "rank": rank,
+                        "startFrame": windowStartFrame,
+                        "winLength": windowLength,
+                        "itemFlags": itemFlags
+                    });
+                    WINDOW_MAP_FRAMES_LIST_SORTED.push(windowStartFrame);
+                }
+                windowStartFrame = f;
+                windowLength = 1;
+                itemFlags = fdata.get(f)['itemFlags']
+            }
+        }
+        WINDOW_MAP_FRAMES_LIST_SORTED.sort((a, b) => a - b);
+        console.log("Generated more window frames, current size: " + WINDOW_MAP_FRAMES_LIST_SORTED.length)
+        callback();
+    });
 }
 
+function binSearch(arr, x) {
+    let lo = 0;
+    let hi = arr.length - 1;
+    while (lo <= hi) {
+        let mid = (lo + hi) >> 1;
+        if (arr[mid] === x)
+            return mid;
+        else if (arr[mid] < x)
+            lo = mid + 1;
+        else
+            hi = mid - 1;
+    }
+    return lo;
+}
+
+async function getNextWindow(startFrame, minWindowSize, selectedItems, rank, currentFrame, remainingTries = 1) {
+    let selectedItemFlags = 0;
+    for (let s of selectedItems) {
+        selectedItemFlags |= (1 << s);
+    }
+    return new Promise((resolve, reject) => {
+        if (!isWindowMapValid(selectedItemFlags, rank)) {
+            console.log("Invalid window. Attempting to generate valid window.")
+            if (remainingTries > 0) {
+                expandWindowMap(selectedItemFlags, currentFrame, rank, 30 * 60 * 60, () => {
+                    getNextWindow(startFrame, minWindowSize, selectedItems, rank, currentFrame, remainingTries - 1).then((x) => {
+                        resolve(x);
+                    });
+                });
+            } else {
+                window.alert("No windows.")
+                resolve(null);
+            }
+            return;
+        }
+
+        let startIndex = binSearch(WINDOW_MAP_FRAMES_LIST_SORTED, startFrame);
+
+        for (let i = startIndex; i < WINDOW_MAP_FRAMES_LIST_SORTED.length; i++) {
+            let frameData = WINDOW_MAP.get(WINDOW_MAP_FRAMES_LIST_SORTED[i]);
+            if (frameData.rank === rank
+                && frameData.startFrame > startFrame
+                && frameData.winLength > minWindowSize
+                && (frameData.itemFlags & selectedItemFlags) !== 0) {
+                resolve(WINDOW_MAP_FRAMES_LIST_SORTED[i]);
+                return;
+            }
+        }
+        console.log("Couldn't find window. Attempting to generate more windows.")
+        if (remainingTries > 0) {
+            expandWindowMap(selectedItemFlags, currentFrame, rank, 30 * 60 * 60, () => {
+                getNextWindow(startFrame, minWindowSize, selectedItems, rank, currentFrame, remainingTries - 1).then((x) => {
+                    resolve(x);
+                });
+            });
+        } else {
+            window.alert("No windows.")
+            resolve(null);
+        }
+    });
+}
 
 function clickLoadNextWindow() {
     if (power_on_time === undefined || power_on_time === null
@@ -743,36 +606,42 @@ function clickLoadNextWindow() {
         return;
     }
     let d = new Date();
+    let current_frame = framesBetweenTimes(d.getTime(), power_on_time)
     let start_frame = framesBetweenTimes(MIN_TIME_BEFORE_WINDOW + d.getTime(), power_on_time);
-    let items = new Set();
-    let item_checkboxes = $("#div-input-items>input[type='checkbox']:checked").get();
-    for (let i = 0; i < item_checkboxes.length; i++) {
-        items.add(BigInt(parseInt(item_checkboxes[i].value)));
+    let selectedItems = new Set();
+    let selectedItemsCheckboxes = $("#div-input-items>input[type='checkbox']:checked").get();
+    for (let i = 0; i < selectedItemsCheckboxes.length; i++) {
+        selectedItems.add(parseInt(selectedItemsCheckboxes[i].value));
     }
-    let rank = $("input[type='radio'][name='rank']:checked").val();
-    if (!itemsInRank(items, rank)) {
-        window.alert("Not possible to get any of these items in this rank.");
+    if (selectedItems.size === 0) {
+        window.alert("Select at least one item");
         return;
     }
-    let next_window = getNextWindow(start_frame, MIN_WINDOW_SIZE, WINDOW_SEARCH_MAX_FRAMES, items, rank);
-    if (next_window === null) {
-        window.alert("Could not find window.");
-        return;
+    let uncheckedItems = new Set();
+    let uncheckedItemCheckboxes = $("#div-input-items>input[type='checkbox']:not(:checked)").get();
+    for (let i = 0; i < uncheckedItemCheckboxes.length; i++) {
+        uncheckedItems.add(parseInt(uncheckedItemCheckboxes[i].value));
     }
-    next_window_start_frame = next_window.start;
-    next_window_length = next_window.length;
-    next_window_target_frame = next_window.target;
-    next_window_target_time = power_on_time + Math.round(framesToMilliseconds(next_window_target_frame));
-    next_window_last_frame = next_window.start + next_window.length - 1;
-    calibration_race_start_time = next_window_target_time;
-    calibration_race_start_frame = "";
-    redraw();
+    let rank = RANK_MAP[$("input[type='radio'][name='rank']:checked").val()];
+    getNextWindow(start_frame, MIN_WINDOW_SIZE, selectedItems, rank, current_frame).then((winFrame) => {
+        if (winFrame === null) {
+            window.alert("Could not find window.");
+            return;
+        }
+        let win = WINDOW_MAP.get(winFrame);
+        next_window_start_frame = win.startFrame;
+        next_window_length = win.winLength;
+        next_window_target_frame = next_window_start_frame + Math.floor(next_window_length / 2);
+        next_window_target_time = power_on_time + Math.round(framesToMilliseconds(next_window_target_frame));
+        next_window_last_frame = next_window_start_frame + next_window_length - 1;
+        calibration_race_start_time = next_window_target_time;
+        calibration_race_start_frame = "";
+        redraw();
 
-    clearFrameData();
-    for (let i = next_window_start_frame; i <= next_window_last_frame; i++) {
-        putFrameData(i, rank);
-    }
-    runTimer(next_window_target_time);
+        clearFrameData();
+        putFramesData(next_window_start_frame, next_window_last_frame, rank, selectedItems);
+        runTimer(next_window_target_time);
+    });
 }
 
 function clickCancelTimer() {
@@ -803,19 +672,3 @@ for (let i = 0; i < CHOCO_NAMES.length; i++) {
 }
 
 changeVolume($("#input-beep-volume").val());
-
-// (async () => {
-//     console.log(await window.electronAPI.query({
-//         rank: "A",
-//         params: {
-//             "Item1": ITEM_NAMES.indexOf("Fire Veil"),
-//             "Item2": ITEM_NAMES.indexOf("Swift Bolt"),
-//             "Item3": ITEM_NAMES.indexOf("Counter"),
-//             "Name2": CHOCO_NAMES.indexOf("FOX"),
-//             "Name3": CHOCO_NAMES.indexOf("JOHN"),
-//             "Name4": CHOCO_NAMES.indexOf("ROBER"),
-//             "Name5": CHOCO_NAMES.indexOf("SEAN"),
-//             "Name6": CHOCO_NAMES.indexOf("RUDY")
-//         }
-//     }))
-// })()

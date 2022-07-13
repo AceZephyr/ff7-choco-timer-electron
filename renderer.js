@@ -244,6 +244,37 @@ function redraw() {
     $("#next-window-last-frame").text(next_window_last_frame);
 }
 
+function getSelectedRank() {
+    return RANK_MAP[$("input[type='radio'][name='rank']:checked").val()];
+}
+
+
+function getSelectedItems() {
+    let selectedItems = new Set();
+    let selectedItemsCheckboxes = $("#div-input-items>input[type='checkbox']:checked").get();
+    for (let i = 0; i < selectedItemsCheckboxes.length; i++) {
+        selectedItems.add(parseInt(selectedItemsCheckboxes[i].value));
+    }
+    return selectedItems;
+}
+
+function getSelectedItemFlags() {
+    let i = 0;
+    for (let item of getSelectedItems()) {
+        i |= (1 << item);
+    }
+    return i;
+}
+
+function getUncheckedItems() {
+    let uncheckedItems = new Set();
+    let uncheckedItemCheckboxes = $("#div-input-items>input[type='checkbox']:not(:checked)").get();
+    for (let i = 0; i < uncheckedItemCheckboxes.length; i++) {
+        uncheckedItems.add(parseInt(uncheckedItemCheckboxes[i].value));
+    }
+    return uncheckedItems;
+}
+
 function runTimer(start) {
     let d = new Date();
     let audio = AUDIO_MAP[$("#input-beep-noise").val()];
@@ -255,8 +286,11 @@ function runTimer(start) {
     ivar = window.setInterval(function () {
         d = new Date();
         let delta = start - d.getTime();
-        let text = "" + (delta / 1000)
-        TIMER_ELEMENT.innerText = text + "0.000".substring(text.length);
+        let text = "" + delta
+        let textA = text.substring(0, text.length - 3);
+        let textB = text.substring(text.length - 3, text.length)
+        text = "0".substring(0, 1 - textA.length) + textA + "." + "000".substring(0, 3 - textB.length) + textB;
+        TIMER_ELEMENT.innerText = "0.000".substring(0, 5 - text.length) + text;
         if (delta <= beep_time) {
             beep_time -= ms_between_beeps;
             audio.play();
@@ -373,7 +407,7 @@ function clickCalculateFrame() {
     for (let i = 0; i < names.length; i++) {
         names[i] = CHOCO_NAMES.indexOf(namesStrs[i]);
     }
-    let rank = RANK_MAP[$("input[type='radio'][name='rank']:checked").val()];
+    let rank = getSelectedRank();
     let conditions = [];
     for (let i = 0; i < items.length; i++) {
         if (items[i] !== -1) {
@@ -578,7 +612,7 @@ async function getNextWindow(startFrame, minWindowSize, selectedItems, rank, cur
             let frameData = WINDOW_MAP.get(WINDOW_MAP_FRAMES_LIST_SORTED[i]);
             if (frameData.rank === rank
                 && frameData.startFrame > startFrame
-                && frameData.winLength > minWindowSize
+                && frameData.winLength >= minWindowSize
                 && (frameData.itemFlags & selectedItemFlags) !== 0) {
                 resolve(WINDOW_MAP_FRAMES_LIST_SORTED[i]);
                 return;
@@ -608,19 +642,10 @@ function clickLoadNextWindow() {
     let d = new Date();
     let current_frame = framesBetweenTimes(d.getTime(), power_on_time)
     let start_frame = framesBetweenTimes(MIN_TIME_BEFORE_WINDOW + d.getTime(), power_on_time);
-    let selectedItems = new Set();
-    let selectedItemsCheckboxes = $("#div-input-items>input[type='checkbox']:checked").get();
-    for (let i = 0; i < selectedItemsCheckboxes.length; i++) {
-        selectedItems.add(parseInt(selectedItemsCheckboxes[i].value));
-    }
+    let selectedItems = getSelectedItems();
     if (selectedItems.size === 0) {
         window.alert("Select at least one item");
         return;
-    }
-    let uncheckedItems = new Set();
-    let uncheckedItemCheckboxes = $("#div-input-items>input[type='checkbox']:not(:checked)").get();
-    for (let i = 0; i < uncheckedItemCheckboxes.length; i++) {
-        uncheckedItems.add(parseInt(uncheckedItemCheckboxes[i].value));
     }
     let rank = RANK_MAP[$("input[type='radio'][name='rank']:checked").val()];
     getNextWindow(start_frame, MIN_WINDOW_SIZE, selectedItems, rank, current_frame).then((winFrame) => {
@@ -642,6 +667,18 @@ function clickLoadNextWindow() {
         putFramesData(next_window_start_frame, next_window_last_frame, rank, selectedItems);
         runTimer(next_window_target_time);
     });
+}
+
+function clickGenerateWindows() {
+    if (power_on_time === undefined || power_on_time === null
+        || calibration_race_start_time === undefined || calibration_race_start_time === null
+        || calibration_race_start_frame === undefined || calibration_race_start_frame === null) {
+        window.alert("Power on and calibrate first!");
+        return;
+    }
+    let d = new Date();
+    let current_frame = framesBetweenTimes(d.getTime(), power_on_time);
+    expandWindowMap(getSelectedItemFlags(), current_frame, getSelectedRank())
 }
 
 function clickCancelTimer() {

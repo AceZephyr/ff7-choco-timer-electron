@@ -1,4 +1,4 @@
-const {app, BrowserWindow, ipcMain} = require('electron')
+const {app, BrowserWindow, ipcMain, dialog} = require('electron')
 const path = require('path')
 const sqlite3 = require("sqlite3");
 
@@ -14,6 +14,12 @@ async function query(event, query) {
             }
         });
     });
+}
+
+async function error(event, content) {
+    console.log("Alert:")
+    console.log(content)
+    return dialog.showErrorBox("ChocoTimer", content)
 }
 
 function createWindow() {
@@ -37,7 +43,8 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-    ipcMain.handle('query', query)
+    ipcMain.handle('query', query);
+    ipcMain.handle('error', error)
     createWindow()
 
     app.on('activate', function () {

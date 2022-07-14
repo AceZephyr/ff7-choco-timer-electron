@@ -147,7 +147,45 @@ const REWARD_TABLES = {
     ]
 };
 
-const SOLUTION_STRINGS = [];
+const SOLUTION_STRINGS = {
+    0: "Automatic",
+    65536: "Manual",
+    65552: "M Up",
+    65600: "M Down",
+    65664: "M Left",
+    65568: "M Right",
+    65680: "M Up-Left",
+    65728: "M Down-Left",
+    65584: "M Up-Right",
+    65632: "M Down-Right",
+    98304: "M Square",
+    98320: "M Square Up",
+    98368: "M Square Down",
+    98432: "M Square Left",
+    98336: "M Square Right",
+    98448: "M Square Up-Left",
+    98496: "M Square Down-Left",
+    98352: "M Square Up-Right",
+    98400: "M Square Down-Right",
+    73728: "M Circle",
+    73744: "M Circle Up",
+    73792: "M Circle Down",
+    73856: "M Circle Left",
+    73760: "M Circle Right",
+    73872: "M Circle Up-Left",
+    73920: "M Circle Down-Left",
+    73776: "M Circle Up-Right",
+    73824: "M Circle Down-Right",
+    68096: "M R1R2",
+    68112: "M R1R2 Up",
+    68160: "M R1R2 Down",
+    68224: "M R1R2 Left",
+    68128: "M R1R2 Right",
+    68240: "M R1R2 Up-Left",
+    68288: "M R1R2 Down-Left",
+    68144: "M R1R2 Up-Right",
+    68192: "M R1R2 Down-Right"
+};
 
 const AUDIO_MAP = {
     "f-clack": $("#audio-f-clack").get()[0],
@@ -364,7 +402,7 @@ function putFramesData(startFrame, endFrame, rank, targetPrizes, div = "#div-fwi
                 for (let targetPrize of solutionsByPrize.keys()) {
                     let raceSolution = solutionsByPrize.get(targetPrize);
                     table.append(`<tr><td colspan="5">${ITEM_NAMES[targetPrize]}</td></tr>`);
-                    table.append(`<tr><td colspan="5">${raceSolution.Inputs}</td></tr>`);
+                    table.append(`<tr><td colspan="5">${SOLUTION_STRINGS[raceSolution.Inputs]}</td></tr>`);
                 }
 
                 $(div).append(table);
@@ -426,7 +464,7 @@ function clickCalculateFrame() {
                     order by Frame asc`;
     window.electronAPI.query(query).then((rows) => {
         if (rows.length === 0) {
-            window.alert("No matching frame exists. (Check selected rank?)")
+            window.electronAPI.error("No matching frame exists. (Check selected rank?)")
             return;
         }
         // sort by number of frames away from estimate, get minimum
@@ -437,7 +475,7 @@ function clickCalculateFrame() {
 
 function clickCalibrate() {
     if (power_on_time === undefined || power_on_time === null || calibration_race_start_time === undefined || calibration_race_start_time === null) {
-        window.alert("Signal a power on time and prepare to calibrate with a race before putting in data.");
+        window.electronAPI.error("Signal a power on time and prepare to calibrate with a race before putting in data.");
         return;
     }
     calibration_race_start_frame = parseInt($("#input-calibration-frame").val());
@@ -600,7 +638,7 @@ async function getNextWindow(startFrame, minWindowSize, selectedItems, rank, cur
                     });
                 });
             } else {
-                window.alert("No windows.")
+                window.electronAPI.error("No windows.")
                 resolve(null);
             }
             return;
@@ -626,7 +664,7 @@ async function getNextWindow(startFrame, minWindowSize, selectedItems, rank, cur
                 });
             });
         } else {
-            window.alert("No windows.")
+            window.electronAPI.error("No windows.")
             resolve(null);
         }
     });
@@ -636,7 +674,7 @@ function clickLoadNextWindow() {
     if (power_on_time === undefined || power_on_time === null
         || calibration_race_start_time === undefined || calibration_race_start_time === null
         || calibration_race_start_frame === undefined || calibration_race_start_frame === null) {
-        window.alert("Power on and calibrate first!");
+        window.electronAPI.error("Power on and calibrate first!");
         return;
     }
     let d = new Date();
@@ -644,13 +682,13 @@ function clickLoadNextWindow() {
     let start_frame = framesBetweenTimes(MIN_TIME_BEFORE_WINDOW + d.getTime(), power_on_time);
     let selectedItems = getSelectedItems();
     if (selectedItems.size === 0) {
-        window.alert("Select at least one item");
+        window.electronAPI.error("Select at least one item");
         return;
     }
     let rank = RANK_MAP[$("input[type='radio'][name='rank']:checked").val()];
     getNextWindow(start_frame, MIN_WINDOW_SIZE, selectedItems, rank, current_frame).then((winFrame) => {
         if (winFrame === null) {
-            window.alert("Could not find window.");
+            window.electronAPI.error("Could not find window.");
             return;
         }
         let win = WINDOW_MAP.get(winFrame);
@@ -673,7 +711,7 @@ function clickGenerateWindows() {
     if (power_on_time === undefined || power_on_time === null
         || calibration_race_start_time === undefined || calibration_race_start_time === null
         || calibration_race_start_frame === undefined || calibration_race_start_frame === null) {
-        window.alert("Power on and calibrate first!");
+        window.electronAPI.error("Power on and calibrate first!");
         return;
     }
     let d = new Date();
@@ -694,7 +732,7 @@ function changeVolume(volume) {
 
 function clickOffsetFrames(scale) {
     if (power_on_time === undefined || power_on_time === null) {
-        window.alert("Must power on first");
+        window.electronAPI.error("Must power on first");
         return;
     }
     power_on_time -= scale * framesToMilliseconds(parseInt($("#input-offset-frames").val()));

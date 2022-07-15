@@ -259,6 +259,7 @@ let FRAME_CALCULATION_SEARCH_WINDOW_SIZE = parseInt($("#input-frame-calculation-
 let MIN_TIME_BEFORE_WINDOW = parseInt($("#input-next-window-min-time").val())
 let WINDOW_SEARCH_MAX_FRAMES = parseInt($("#input-window-search-max-frames").val())
 let MIN_WINDOW_SIZE = parseInt($("#input-min-window-size").val())
+let BEEP_TIMER_FREQUENCY = parseInt($("#input-beep-timer-frequency").val())
 
 let TIMER_ELEMENT = $("#timer").get()[0];
 
@@ -337,7 +338,7 @@ function runTimer(start) {
             TIMER_ELEMENT.innerText = "0.000";
             stopTimer();
         }
-    }, 10);
+    }, BEEP_TIMER_FREQUENCY);
 }
 
 function stopTimer() {

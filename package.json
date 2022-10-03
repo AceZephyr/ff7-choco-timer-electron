@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "jquery": "^3.6.0",
-    "jsdom": "^19.0.0",
+    "jsdom": "^20.0.1",
     "sqlite3": "^5.0.4"
   }
 }
